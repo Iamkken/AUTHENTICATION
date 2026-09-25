@@ -7,14 +7,14 @@ require('dotenv').config();
 const app = express();
 const userRoutes = require('./src/routes/user.routes');
 
-const PORT = process.env.PORT || 7000;
+const PORT = process.env.PORT || 7011;
 
 app.use(express.json());
 app.use(morgan('dev'));
 connectDB();
 
-app.get('/', (req, res)=>{
-    res.send ('WELCOME!!! This is your login page');
+app.get('/', (req, res) => {
+    res.send('WELCOME!!! This is your login page');
 });
 
 app.use('/api/v1/user', userRoutes);

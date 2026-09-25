@@ -19,7 +19,20 @@ const userSchema = new schema({
         type: String,
         required: true
     },
-},{timestamps: true, versionKey: false});
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    otp: {
+        type: String,
+        default: null,
+        unique: true
+    },
+    otpExpiresAt: {
+        type: Date,
+        default: null
+    }
+}, { timestamps: true, versionKey: false });
 
 const User = mongoose.model('user', userSchema);
 

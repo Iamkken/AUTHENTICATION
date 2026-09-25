@@ -1,4 +1,8 @@
 const User = require("../models/user.models");
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+require("dotenv").config();
+
 
 const signup = async (req, res) => {
     const { firstName, lastName, email, password } = req.body;
@@ -6,13 +10,13 @@ const signup = async (req, res) => {
         if (!firstName || !lastName || !email || !password) {
             return res.status(400).json({ message: "All fields are required" });
         }
-
+        const hashedPassword = await bcrypt.hash(password, 10);
         const user = await User.findOne({ email });
         if (user) {
             return res.status(400).json({ message: "User already exists" });
         }
 
-        const newUser = await User.create({ firstName, lastName, email, password });
+        const newUser = await User.create({ firstName, lastName, email, password: hashedPassword });
         return res.status(201).json({ message: "User created successfully", user: newUser });
     } catch (error) {
         console.error("Error in signup:", error);
@@ -30,14 +34,136 @@ const login = async (req, res) => {
         if (!user) {
             return res.status(400).json({ message: "User not found" });
         }
-        if(user.password !== password){
+        if (!user.isVerified) {
+            return res.status(400).json ({message: "user is not verified"});
+        }
+
+        const isPasswordCorrect = await bcrypt.compare(password, user.password);
+        if (!isPasswordCorrect) {
             return res.status(400).json({ message: "Invalid password" });
         }
-        return res.status(200).json({ message: "Login successful", user: user });
+
+        const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, {
+            expiresIn: "1h",
+        });
+
+        return res.status(200).json({ message: "Login successful", user: user, token: token });
     } catch (error) {
         console.log("Error in login:", error);
         return res.status(500).json({ message: "Internal server error" });
     }
 }
 
-module.exports = { signup, login };
+const sendOtp = async (req, res) => {
+    const id = req.params.id;
+    try {
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(400).json({ message: "User not found" });
+        }
+        const otp = Math.floor(100000 + Math.random() * 900000);
+        const otpExpiresAt = Date.now() + 10 * 60 * 1000;
+        user.otp = otp;
+        user.otpExpiresAt = otpExpiresAt;
+        await user.save();
+        return res.status(200).json({ message: "OTP sent successfully", otp: otp, otpExpiresAt: otpExpiresAt });
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+
+const verifyOtp = async (req, res) => {
+    const { otp } = req.body;
+    try {
+        const user = await User.findOne({otp: otp});
+        if (!user) {
+            return res.status(400).json({ message: "User not found" });
+        }
+
+        if (user.otp !== otp) {
+            return res.status(400).json({ message: "Invalid otp" });
+        }
+        if(user.otpExpiresAt < Date.now()){
+            return res.status(400).json({message: "OTP expired"});
+        }
+        if(user.isVerified) {
+            return res.status(400).json ({message: "email already verified"});
+        }
+        user.isVerified = true;
+        user.otp = null;
+        user.otpExpiresAt = null;
+        await user.save();
+        return res.status(200).json({message: "email verified successfully"});
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({message: "Internal server error"});
+    }
+};
+
+const resendOtp = async (req, res) => {
+    const id = req.params.id;
+    try {
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(400).json({ message: "User not found" });
+        }
+        const otp = Math.floor(100000 + Math.random() * 900000);
+        const otpExpiresAt = Date.now() + 10 * 60 * 1000;
+        user.otp = otp;
+        user.otpExpiresAt = otpExpiresAt;
+        await user.save();
+        return res.status(200).json({ message: "OTP sent successfully", otp: otp, otpExpiresAt: otpExpiresAt });
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        if(!user.isVerified) {
+            return res.status(400).json({message: "User not verified"});
+        }
+        const otp = Math.floor(100000 + Math.random() * 900000);
+        const otpExpiresAt = Date.now() + 10 * 60 * 1000;
+        user.otp = otp;
+        user.otpExpiresAt = otpExpiresAt;
+        await user.save();
+        return res.status(200).json({ message: "OTP sent successfully", otp: otp, otpExpiresAt: otpExpiresAt });
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    const { otp, newPassword } = req.body;
+    try {
+        const user = await User.findOne({ otp: otp });
+        if (!user) {
+            return res.status(400).json({ message: "User not found" });
+        }
+        if (user.otp !== otp) {
+            return res.status(400).json({ message: "Invalid otp" });
+        }
+        if (user.otpExpiresAt < Date.now()) {
+            return res.status(400).json({ message: "OTP expired" });
+        }
+        user.password = await bcrypt.hash(newPassword, 10);
+        await user.save();
+        return res.status(200).json({ message: "Password reset successfully" });
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+
+module.exports = { signup, login, sendOtp, verifyOtp, resendOtp, forgotPassword, resetPassword };

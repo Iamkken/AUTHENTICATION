@@ -1,6 +1,7 @@
 const User = require("../models/user.models");
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { sendEmail } = require("../helpers/email");
 require("dotenv").config();
 
 
@@ -47,6 +48,10 @@ const login = async (req, res) => {
             expiresIn: "1h",
         });
 
+        await sendEmail(user.email, "Logged in successfully", `Welcome to E-Commerce, ${user.firstName}!`);
+        //once the user is verified and logged in successfully,  the user receives an email
+        //with a welcome message, welcome to E-Commerce, firstName
+
         return res.status(200).json({ message: "Login successful", user: user, token: token });
     } catch (error) {
         console.log("Error in login:", error);
@@ -66,12 +71,13 @@ const sendOtp = async (req, res) => {
         user.otp = otp;
         user.otpExpiresAt = otpExpiresAt;
         await user.save();
-        return res.status(200).json({ message: "OTP sent successfully", otp: otp, otpExpiresAt: otpExpiresAt });
-    } catch (e) {
+        await sendEmail(user.email, "OTP for verification", `Your OTP is ${otp}`);
+        return res.status(200).json({ message: "OTP sent successfully"});
+        } catch (e) {
         console.log(e);
         return res.status(500).json({ message: "Internal server error" });
-    }
-};
+}
+};  
 
 
 const verifyOtp = async (req, res) => {
@@ -114,12 +120,17 @@ const resendOtp = async (req, res) => {
         user.otp = otp;
         user.otpExpiresAt = otpExpiresAt;
         await user.save();
-        return res.status(200).json({ message: "OTP sent successfully", otp: otp, otpExpiresAt: otpExpiresAt });
-    } catch (e) {
+        await sendEmail(user.email, "OTP for verification", `Your OTP is ${otp}`);
+        return res.status(200).json({ message: "OTP sent successfully"});
+        } catch (e) {
         console.log(e);
         return res.status(500).json({ message: "Internal server error" });
+    //     return res.status(200).json({ message: "OTP sent successfully", otp: otp, otpExpiresAt: otpExpiresAt });
+    // } catch (e) {
+    //     console.log(e);
+    //     return res.status(500).json({ message: "Internal server error" });
     }
-};
+    };
 
 const forgotPassword = async (req, res) => {
     try {

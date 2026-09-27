@@ -26,7 +26,7 @@ const userSchema = new schema({
     otp: {
         type: String,
         default: null,
-        unique: true
+         unique: true
     },
     otpExpiresAt: {
         type: Date,

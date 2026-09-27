@@ -19,6 +19,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/v1/user', userRoutes);
 
+
 app.listen(PORT, () => {
     console.log(`server is running on port ${PORT}`);
 });

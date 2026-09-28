@@ -7,7 +7,8 @@ const {
     verifyOtp, 
     resendOtp, 
     forgotPassword, 
-    resetPassword 
+    resetPassword, 
+    deleteUser
 } = require('../controllers/user.controllers');
 
 
@@ -18,6 +19,7 @@ router.post('/verify-otp', verifyOtp);
 router.post('/resend-otp/:id', resendOtp);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
+router.delete('/delete-user/:id', deleteUser);
 
 
 module.exports = router;

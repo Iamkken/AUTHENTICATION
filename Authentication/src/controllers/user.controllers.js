@@ -36,7 +36,7 @@ const login = async (req, res) => {
             return res.status(400).json({ message: "User not found" });
         }
         if (!user.isVerified) {
-            return res.status(400).json ({message: "user is not verified"});
+            return res.status(400).json({ message: "user is not verified" });
         }
 
         const isPasswordCorrect = await bcrypt.compare(password, user.password);
@@ -72,18 +72,18 @@ const sendOtp = async (req, res) => {
         user.otpExpiresAt = otpExpiresAt;
         await user.save();
         await sendEmail(user.email, "OTP for verification", `Your OTP is ${otp}`);
-        return res.status(200).json({ message: "OTP sent successfully"});
-        } catch (e) {
+        return res.status(200).json({ message: "OTP sent successfully" });
+    } catch (e) {
         console.log(e);
         return res.status(500).json({ message: "Internal server error" });
-}
-};  
+    }
+};
 
 
 const verifyOtp = async (req, res) => {
     const { otp } = req.body;
     try {
-        const user = await User.findOne({otp: otp});
+        const user = await User.findOne({ otp: otp });
         if (!user) {
             return res.status(400).json({ message: "User not found" });
         }
@@ -91,20 +91,20 @@ const verifyOtp = async (req, res) => {
         if (user.otp !== otp) {
             return res.status(400).json({ message: "Invalid otp" });
         }
-        if(user.otpExpiresAt < Date.now()){
-            return res.status(400).json({message: "OTP expired"});
+        if (user.otpExpiresAt < Date.now()) {
+            return res.status(400).json({ message: "OTP expired" });
         }
-        if(user.isVerified) {
-            return res.status(400).json ({message: "email already verified"});
+        if (user.isVerified) {
+            return res.status(400).json({ message: "email already verified" });
         }
         user.isVerified = true;
         user.otp = null;
         user.otpExpiresAt = null;
         await user.save();
-        return res.status(200).json({message: "email verified successfully"});
+        return res.status(200).json({ message: "email verified successfully" });
     } catch (e) {
         console.log(e);
-        return res.status(500).json({message: "Internal server error"});
+        return res.status(500).json({ message: "Internal server error" });
     }
 };
 
@@ -121,16 +121,16 @@ const resendOtp = async (req, res) => {
         user.otpExpiresAt = otpExpiresAt;
         await user.save();
         await sendEmail(user.email, "OTP for verification", `Your OTP is ${otp}`);
-        return res.status(200).json({ message: "OTP sent successfully"});
-        } catch (e) {
+        return res.status(200).json({ message: "OTP sent successfully" });
+    } catch (e) {
         console.log(e);
         return res.status(500).json({ message: "Internal server error" });
-    //     return res.status(200).json({ message: "OTP sent successfully", otp: otp, otpExpiresAt: otpExpiresAt });
-    // } catch (e) {
-    //     console.log(e);
-    //     return res.status(500).json({ message: "Internal server error" });
+        //     return res.status(200).json({ message: "OTP sent successfully", otp: otp, otpExpiresAt: otpExpiresAt });
+        // } catch (e) {
+        //     console.log(e);
+        //     return res.status(500).json({ message: "Internal server error" });
     }
-    };
+};
 
 const forgotPassword = async (req, res) => {
     try {
@@ -139,8 +139,8 @@ const forgotPassword = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
-        if(!user.isVerified) {
-            return res.status(400).json({message: "User not verified"});
+        if (!user.isVerified) {
+            return res.status(400).json({ message: "User not verified" });
         }
         const otp = Math.floor(100000 + Math.random() * 900000);
         const otpExpiresAt = Date.now() + 10 * 60 * 1000;
@@ -176,5 +176,27 @@ const resetPassword = async (req, res) => {
     }
 };
 
+const deleteUser = async (req, res) => {
+    const id = req.params.id;
+    try {
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(400).json({ message: "User not found" });
+        }
+        await user.deleteOne();
+        return res.status(200).json({ message: "User deleted successfully" });
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
 
-module.exports = { signup, login, sendOtp, verifyOtp, resendOtp, forgotPassword, resetPassword };
+module.exports = 
+                { signup, 
+                    login, 
+                    sendOtp, 
+                    verifyOtp, 
+                    resendOtp, 
+                    forgotPassword, 
+                    resetPassword, 
+                    deleteUser };
